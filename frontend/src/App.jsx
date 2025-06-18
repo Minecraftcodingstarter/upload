@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import axios from 'axios';
+import ThreePreview from './ThreePreview';
 
 function App() {
   const [username, setUsername] = useState('');
@@ -28,20 +29,22 @@ function App() {
   };
 
   return (
-    <div style={{ padding: 20 }}>
-      <h1>3D-Objekt und Benutzername hochladen</h1>
-      <form onSubmit={handleSubmit}>
-        <div>
+    <div style={{ padding: 20, fontFamily: 'Arial, sans-serif' }}>
+      <h1>3D-Objekt hochladen & anzeigen</h1>
+
+      <form onSubmit={handleSubmit} style={{ marginBottom: 20 }}>
+        <div style={{ marginBottom: 10 }}>
           <label>Benutzername:</label><br />
           <input
             type="text"
             value={username}
             onChange={e => setUsername(e.target.value)}
             required
+            style={{ width: '100%', padding: 8 }}
           />
         </div>
-        <div>
-          <label>3D-Datei auswählen:</label><br />
+        <div style={{ marginBottom: 10 }}>
+          <label>3D-Datei auswählen (.glb, .gltf, .obj, .fbx):</label><br />
           <input
             type="file"
             accept=".glb,.gltf,.obj,.fbx"
@@ -49,13 +52,20 @@ function App() {
             required
           />
         </div>
-        <button type="submit">Hochladen</button>
+        <button type="submit" style={{ padding: '10px 20px' }}>Hochladen</button>
       </form>
+
       {fileURL && (
-        <div style={{ marginTop: 20 }}>
-          <p>Datei erfolgreich hochgeladen:</p>
-          <a href={fileURL} target="_blank" rel="noreferrer">Hier klicken</a>
-        </div>
+        <>
+          <div style={{ marginBottom: 20 }}>
+            <p>Datei erfolgreich hochgeladen:</p>
+            <a href={fileURL} target="_blank" rel="noreferrer">{fileURL}</a>
+          </div>
+          <div>
+            <h3>3D-Vorschau:</h3>
+            <ThreePreview modelUrl={fileURL} />
+          </div>
+        </>
       )}
     </div>
   );

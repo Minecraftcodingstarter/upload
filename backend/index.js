@@ -8,7 +8,8 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-const PORT = 3001;
+const PORT = process.env.PORT || 3001;
+const backendUrl = process.env.BACKEND_URL || `http://localhost:${PORT}`;
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -29,11 +30,11 @@ app.post('/upload', upload.single('file'), (req, res) => {
   if (!req.file) return res.status(400).send('Keine Datei übermittelt.');
 
   const filepath = `uploads/${username}/${req.file.filename}`;
-  res.json({ success: true, path: filepath, url: `http://localhost:${PORT}/${filepath}` });
+  res.json({ success: true, path: filepath, url: `${backendUrl}/${filepath}` });
 });
 
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 app.listen(PORT, () => {
-  console.log(`🚀 Backend läuft auf http://localhost:${PORT}`);
+  console.log(`🚀 Backend läuft auf ${backendUrl}`);
 });

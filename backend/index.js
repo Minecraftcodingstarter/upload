@@ -9,7 +9,9 @@ app.use(cors());
 app.use(express.json());
 
 const PORT = process.env.PORT || 3001;
-const backendUrl = process.env.BACKEND_URL || `http://localhost:${PORT}`;
+const backendUrl = process.env.RENDER_EXTERNAL_HOSTNAME
+  ? `https://${process.env.RENDER_EXTERNAL_HOSTNAME}`
+  : `http://localhost:${PORT}`;
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {

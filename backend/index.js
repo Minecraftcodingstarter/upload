@@ -9,14 +9,12 @@ app.use(cors());
 app.use(express.json());
 
 const PORT = process.env.PORT || 3001;
-const backendUrl = process.env.RENDER_EXTERNAL_HOSTNAME
-  ? `https://${process.env.RENDER_EXTERNAL_HOSTNAME}`
-  : `http://localhost:${PORT}`;
 
+// Speicherort außerhalb public
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     const username = req.body.username.trim();
-    const dir = path.join(__dirname, 'uploads', username);
+    const dir = path.join(__dirname, 'private_uploads', username);
     fs.mkdirSync(dir, { recursive: true });
     cb(null, dir);
   },
@@ -31,12 +29,15 @@ app.post('/upload', upload.single('file'), (req, res) => {
   const username = req.body.username;
   if (!req.file) return res.status(400).send('Keine Datei übermittelt.');
 
-  const filepath = `uploads/${username}/${req.file.filename}`;
-  res.json({ success: true, path: filepath, url: `${backendUrl}/${filepath}` });
+  // Loggen für den Entwickler
+  const logPath = path.join(__dirname, 'upload-log.json');
+  const log = fs.existsSync(logPath) ? JSON.parse(fs.readFileSync(logPath)) : [];
+  log.push({ username, filename: req.file.filename, timestamp: Date.now() });
+  fs.writeFileSync(logPath, JSON.stringify(log, null, 2));
+
+  res.json({ success: true, message: 'Upload erfolgreich. Danke!' });
 });
 
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-
 app.listen(PORT, () => {
-  console.log(`🚀 Backend läuft auf ${backendUrl}`);
+  console.log(`🚀 Backend läuft auf http://localhost:${PORT}`);
 });

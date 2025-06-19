@@ -18,83 +18,79 @@ export default function ThreePreview({ modelUrl }) {
     // Renderer
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setSize(300, 300);
+    renderer.setClearColor(0x000000, 0); // transparent Hintergrund
     containerRef.current.innerHTML = '';
     containerRef.current.appendChild(renderer.domElement);
 
-    // OrbitControls
+    // OrbitControls für Maussteuerung
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
 
     // Licht
-    const light1 = new THREE.HemisphereLight(0xffffff, 0x444444, 1.2);
-    const light2 = new THREE.DirectionalLight(0xffffff, 0.8);
-    light2.position.set(0, 10, 10);
-    scene.add(light1, light2);
+    const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444);
+    hemiLight.position.set(0, 20, 0);
+    scene.add(hemiLight);
 
-    // Modell einpassen
+    const dirLight = new THREE.DirectionalLight(0xffffff);
+    dirLight.position.set(-3, 10, -10);
+    scene.add(dirLight);
+
+    // Hilfsfunktion: Szene zentrieren und Kamera passend setzen
     function frameObject(object) {
+      // BoundingBox berechnen
       const box = new THREE.Box3().setFromObject(object);
       const size = box.getSize(new THREE.Vector3());
       const center = box.getCenter(new THREE.Vector3());
 
-      object.position.sub(center); // Zentrieren
+      // Objekt auf Ursprung verschieben
+      object.position.sub(center);
 
+      // Abstand berechnen (Faktor kann angepasst werden)
       const maxDim = Math.max(size.x, size.y, size.z);
       const fov = camera.fov * (Math.PI / 180);
-      const distance = (maxDim / 2) / Math.tan(fov / 2) * 1.5;
+      const cameraZ = (maxDim / 2) / Math.tan(fov / 2) * 1.5; // Abstand zur Kamera
 
-      camera.position.set(0, 0, distance);
-      camera.near = distance / 100;
-      camera.far = distance * 100;
+      camera.position.set(0, 0, cameraZ);
+      camera.near = cameraZ / 100;
+      camera.far = cameraZ * 100;
       camera.updateProjectionMatrix();
 
       controls.target.set(0, 0, 0);
       controls.update();
     }
 
-    // Modell laden
+    // Loader auswählen je nach Dateiendung
     const ext = modelUrl.split('.').pop().toLowerCase();
 
     let loader;
     if (ext === 'obj') {
       loader = new OBJLoader();
-      loader.load(
-        modelUrl,
-        (obj) => {
-          scene.add(obj);
-          frameObject(obj);
-          animate();
-        },
-        undefined,
-        (error) => console.error('Fehler beim Laden von .obj:', error)
-      );
     } else if (ext === 'fbx') {
       loader = new FBXLoader();
-      loader.load(
-        modelUrl,
-        (fbx) => {
-          scene.add(fbx);
-          frameObject(fbx);
-          animate();
-        },
-        undefined,
-        (error) => console.error('Fehler beim Laden von .fbx:', error)
-      );
-    } else if (ext === 'gltf' || ext === 'glb') {
+    } else if (ext === 'glb' || ext === 'gltf') {
       loader = new GLTFLoader();
-      loader.load(
-        modelUrl,
-        (gltf) => {
-          scene.add(gltf.scene);
-          frameObject(gltf.scene);
-          animate();
-        },
-        undefined,
-        (error) => console.error('Fehler beim Laden von .gltf/.glb:', error)
-      );
     } else {
-      console.warn('Nicht unterstützter Dateityp:', ext);
+      console.error('Unsupported file format:', ext);
+      return;
     }
+
+    loader.load(
+      modelUrl,
+      (model) => {
+        if (ext === 'glb' || ext === 'gltf') {
+          scene.add(model.scene);
+          frameObject(model.scene);
+        } else {
+          scene.add(model);
+          frameObject(model);
+        }
+        animate();
+      },
+      undefined,
+      (error) => {
+        console.error('Fehler beim Laden des Modells:', error);
+      }
+    );
 
     // Animationsschleife
     function animate() {
@@ -103,7 +99,7 @@ export default function ThreePreview({ modelUrl }) {
       renderer.render(scene, camera);
     }
 
-    // Aufräumen
+    // Aufräumen bei Komponenten-Unmount
     return () => {
       renderer.dispose();
       containerRef.current.innerHTML = '';

@@ -1,71 +1,99 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import axios from 'axios';
-import ThreePreview from './ThreePreview';
+import { Canvas } from '@react-three/fiber';
+import { OrbitControls, useGLTF } from '@react-three/drei';
+import './App.css';
+
+function ModelViewer({ file }) {
+  const [url, setUrl] = useState('');
+
+  useEffect(() => {
+    if (file) {
+      const blobUrl = URL.createObjectURL(file);
+      setUrl(blobUrl);
+      return () => URL.revokeObjectURL(blobUrl);
+    }
+  }, [file]);
+
+  if (!url) return null;
+
+  const Model = () => {
+    const gltf = useGLTF(url);
+    return <primitive object={gltf.scene} />;
+  };
+
+  return (
+    <Canvas style={{ height: 400, background: '#eee', marginTop: 20 }}>
+      <ambientLight />
+      <directionalLight position={[0, 0, 5]} />
+      <OrbitControls />
+      <Model />
+    </Canvas>
+  );
+}
 
 function App() {
   const [username, setUsername] = useState('');
   const [file, setFile] = useState(null);
-  const [fileURL, setFileURL] = useState('');
+  const [uploadSuccess, setUploadSuccess] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const backendUrl = import.meta.env.VITE_BACKEND_URL;
+  const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!username || !file) {
-      alert('Bitte Benutzername und Datei angeben.');
+      alert('Bitte eBay-Benutzernamen und Datei angeben.');
       return;
     }
 
     const formData = new FormData();
-    formData.append('username', username);
+    formData.append('username', username.trim());
     formData.append('file', file);
 
     try {
-      const res = await axios.post(`${backendUrl}/upload`, formData);
-      setFileURL(res.data.url);
+      setLoading(true);
+      await axios.post(`${backendUrl}/upload`, formData);
+      setUploadSuccess(true);
+      setUsername('');
     } catch (err) {
       alert('Fehler beim Hochladen: ' + err.message);
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div style={{ padding: 20, fontFamily: 'Arial, sans-serif' }}>
-      <h1>3D-Objekt hochladen & anzeigen</h1>
+    <div className="container">
+      <h1>3D-Upload für eBay-Verkäufer</h1>
+      <form onSubmit={handleSubmit} className="upload-form">
+        <label>eBay-Benutzername</label>
+        <input
+          type="text"
+          value={username}
+          onChange={e => setUsername(e.target.value)}
+          placeholder="z. B. max123"
+          required
+        />
 
-      <form onSubmit={handleSubmit} style={{ marginBottom: 20 }}>
-        <div style={{ marginBottom: 10 }}>
-          <label>Benutzername:</label><br />
-          <input
-            type="text"
-            value={username}
-            onChange={e => setUsername(e.target.value)}
-            required
-            style={{ width: '100%', padding: 8 }}
-          />
-        </div>
-        <div style={{ marginBottom: 10 }}>
-          <label>3D-Datei auswählen (.glb, .gltf, .obj, .fbx):</label><br />
-          <input
-            type="file"
-            accept=".glb,.gltf,.obj,.fbx"
-            onChange={e => setFile(e.target.files[0])}
-            required
-          />
-        </div>
-        <button type="submit" style={{ padding: '10px 20px' }}>Hochladen</button>
+        <label>3D-Modell (GLB, FBX, OBJ...)</label>
+        <input
+          type="file"
+          accept=".glb,.gltf"
+          onChange={e => setFile(e.target.files[0])}
+          required
+        />
+
+        <button type="submit" disabled={loading}>
+          {loading ? 'Wird hochgeladen...' : 'Jetzt hochladen'}
+        </button>
       </form>
 
-      {fileURL && (
-        <>
-          <div style={{ marginBottom: 20 }}>
-            <p>Datei erfolgreich hochgeladen:</p>
-            <a href={fileURL} target="_blank" rel="noreferrer">{fileURL}</a>
-          </div>
-          <div>
-            <h3>3D-Vorschau:</h3>
-            <ThreePreview modelUrl={fileURL} />
-          </div>
-        </>
+      {uploadSuccess && file && (
+        <div className="viewer">
+          <h2>Vorschau des 3D-Modells:</h2>
+          <ModelViewer file={file} />
+        </div>
       )}
     </div>
   );

@@ -11,6 +11,8 @@ export default function ThreePreview({ modelUrl }) {
   useEffect(() => {
     if (!modelUrl) return;
 
+    console.log('Starte Laden des Models:', modelUrl);
+
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(75, 1, 0.1, 1000);
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
@@ -47,55 +49,58 @@ export default function ThreePreview({ modelUrl }) {
 
       controls.target.set(0, 0, 0);
       controls.update();
+
+      console.log('Objekt zentriert, Kamera positioniert:', camera.position);
     }
 
-    // Loader anhand Dateiendung wählen
     const ext = modelUrl.split('.').pop().toLowerCase();
+
+    const onError = (error) => {
+      console.error('Fehler beim Laden des Models:', error);
+      containerRef.current.innerHTML = '<p style="color:red;">Fehler beim Laden des Models. Schau Konsole an.</p>';
+    };
 
     if (ext === 'obj') {
       const loader = new OBJLoader();
       loader.load(
         modelUrl,
         (obj3d) => {
+          console.log('OBJ geladen');
           object = obj3d;
           scene.add(object);
           frameObject(object);
           animate();
         },
         undefined,
-        (err) => {
-          console.error('OBJ Laden Fehler:', err);
-        }
+        onError
       );
     } else if (ext === 'fbx') {
       const loader = new FBXLoader();
       loader.load(
         modelUrl,
         (fbx) => {
+          console.log('FBX geladen');
           object = fbx;
           scene.add(object);
           frameObject(object);
           animate();
         },
         undefined,
-        (err) => {
-          console.error('FBX Laden Fehler:', err);
-        }
+        onError
       );
     } else {
       const loader = new GLTFLoader();
       loader.load(
         modelUrl,
         (gltf) => {
+          console.log('GLTF/GLB geladen');
           object = gltf.scene;
           scene.add(object);
           frameObject(object);
           animate();
         },
         undefined,
-        (err) => {
-          console.error('GLTF Laden Fehler:', err);
-        }
+        onError
       );
     }
 
